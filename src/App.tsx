@@ -174,7 +174,7 @@ export default function App() {
                   >
                     <source src={videoSrc} type="video/mp4" />
                   </video>
-                  <div className="absolute bottom-6 inset-x-4 z-20">
+                  <div className="absolute bottom-16 inset-x-4 z-20">
                     <a
                       href={`/api/download-file?url=${encodeURIComponent(videoSrc)}`}
                       className="w-full h-14 bg-gradient-accent rounded-xl flex items-center justify-center font-bold shadow-lg shadow-purple-500/40"
