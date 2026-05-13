@@ -73,9 +73,9 @@ async function startServer() {
       });
   });
 
-  app.get("/", (req, res) => {
-  res.send("ReelDown Backend Running");
-});
+//   app.get("/", (req, res) => {
+//   res.send("ReelDown Backend Running");
+// });
 
   const server = app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on port ${PORT}`);
