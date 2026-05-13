@@ -13,41 +13,43 @@ async function startServer() {
 
   // Download endpoint - wraps youtube-dl-exec instead of python shell
   app.get("/api/download", async (req, res) => {
-    const url = req.query.url as string;
+  const url = req.query.url as string;
 
-    if (!url) {
-      return res.json({
-        success: false,
-        error: "URL Required",
-      });
+  if (!url) {
+    return res.json({
+      success: false,
+      error: "URL Required",
+    });
+  }
+
+  try {
+    const rawOutput = await youtubedl(url, {
+      format: "best",
+      getUrl: true,
+    });
+
+    const videoUrl =
+      typeof rawOutput === "string"
+        ? rawOutput.split("\n")[0].trim()
+        : "";
+
+    if (!videoUrl) {
+      throw new Error("No Video URL");
     }
 
-    try {
-      // Get the direct URL of the video (equivalent to yt_dlp -g)
-      const rawOutput = await youtubedl(url, {
-        getUrl: true,
-      });
+    res.json({
+      success: true,
+      video: videoUrl,
+    });
+  } catch (error) {
+    console.log(error);
 
-      // youtube-dl-exec returns a string of URLs separated by newlines.
-      // We'll take the first one, which is typically the video URL.
-      const videoUrl = typeof rawOutput === 'string' ? rawOutput.split('\n')[0].trim() : '';
-
-      if (!videoUrl) {
-        throw new Error("Could not parse video URL");
-      }
-
-      res.json({
-        success: true,
-        video: videoUrl,
-      });
-    } catch (error) {
-      console.error(error);
-      return res.json({
-        success: false,
-        error: "Failed To Fetch Video",
-      });
-    }
-  });
+    res.json({
+      success: false,
+      error: "Failed To Fetch Video",
+    });
+  }
+});
 
   // Proxy the download file for saving as MP4 (so users can easily download to disk)
   app.get("/api/download-file", async (req, res) => {
@@ -70,6 +72,10 @@ async function startServer() {
         res.send("Download Failed");
       });
   });
+
+  app.get("/", (req, res) => {
+  res.send("ReelDown Backend Running");
+});
 
   const server = app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on port ${PORT}`);
