@@ -27,12 +27,17 @@ async function startServer() {
     }
 
     try {
-      const info: any = await youtubedl(url, {
+      const options: any = {
         dumpSingleJson: true,
         noWarnings: true,
         preferFreeFormats: true,
-        cookies: "cookies.txt",
-      });
+      };
+
+      if (process.env.NODE_ENV === "production") {
+        options.cookies = path.join(process.cwd(), "cookies.txt");
+      }
+
+      const info: any = await youtubedl(url, options);
 
       // Direct playable URL
       let videoUrl = info.url;
