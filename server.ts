@@ -1,6 +1,6 @@
 import express from "express";
 import path from "path";
-const cors = require("cors");
+import cors from "cors";
 import https from "https";
 import youtubedl from "youtube-dl-exec";
 import { createServer as createViteServer } from "vite";
@@ -31,6 +31,7 @@ async function startServer() {
         dumpSingleJson: true,
         noWarnings: true,
         preferFreeFormats: true,
+        cookies: "cookies.txt",
       });
 
       // Direct playable URL
