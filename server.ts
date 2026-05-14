@@ -7,49 +7,58 @@ import { createServer as createViteServer } from "vite";
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  const PORT = Number(process.env.PORT) || 3000;
 
   app.use(cors());
 
   // Download endpoint - wraps youtube-dl-exec instead of python shell
   app.get("/api/download", async (req, res) => {
-  const url = req.query.url as string;
+    const url = req.query.url as string;
 
-  if (!url) {
-    return res.json({
-      success: false,
-      error: "URL Required",
-    });
-  }
-
-  try {
-    const rawOutput = await youtubedl(url, {
-      format: "best",
-      getUrl: true,
-    });
-
-    const videoUrl =
-      typeof rawOutput === "string"
-        ? rawOutput.split("\n")[0].trim()
-        : "";
-
-    if (!videoUrl) {
-      throw new Error("No Video URL");
+    if (!url) {
+      return res.json({
+        success: false,
+        error: "URL Required",
+      });
     }
 
-    res.json({
-      success: true,
-      video: videoUrl,
-    });
-  } catch (error) {
-    console.log(error);
+    try {
+      const info: any = await youtubedl(url, {
+        dumpSingleJson: true,
+        noWarnings: true,
+        preferFreeFormats: true,
+        youtubeSkipDashManifest: true,
+      });
 
-    res.json({
-      success: false,
-      error: "Failed To Fetch Video",
-    });
-  }
-});
+      const formats = info.formats || [];
+
+      const mp4 = formats.find(
+        (f: any) =>
+          f.ext === "mp4" &&
+          f.acodec !== "none" &&
+          f.vcodec !== "none"
+      );
+
+      if (!mp4) {
+        return res.json({
+          success: false,
+          error: "No playable video found",
+        });
+      }
+
+      res.json({
+        success: true,
+        video: mp4.url,
+      });
+    } catch (err) {
+      console.log(err);
+
+      res.json({
+        success: false,
+        error: "Failed To Fetch Video",
+      });
+    }
+  });
 
   // Proxy the download file for saving as MP4 (so users can easily download to disk)
   app.get("/api/download-file", async (req, res) => {
@@ -80,7 +89,7 @@ async function startServer() {
   // Vite middleware setup for Full-Stack React
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
-      server: { 
+      server: {
         middlewareMode: true,
         hmr: { server }
       },
