@@ -43,7 +43,8 @@ async function startServer() {
           .filter(
             (f: any) =>
               f.url &&
-              f.vcodec !== "none"
+              f.vcodec !== "none" &&
+              f.acodec !== "none"
           )
           .sort((a: any, b: any) => (b.height || 0) - (a.height || 0))[0];
 
