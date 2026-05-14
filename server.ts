@@ -1,6 +1,6 @@
 import express from "express";
 import path from "path";
-import cors from "cors";
+const cors = require("cors");
 import https from "https";
 import youtubedl from "youtube-dl-exec";
 import { createServer as createViteServer } from "vite";
@@ -9,7 +9,11 @@ async function startServer() {
   const app = express();
   const PORT = Number(process.env.PORT) || 3000;
 
-  app.use(cors());
+  app.use(
+    cors({
+      origin: "*",
+    })
+  );
 
   // Download endpoint - wraps youtube-dl-exec instead of python shell
   app.get("/api/download", async (req, res) => {
@@ -27,35 +31,42 @@ async function startServer() {
         dumpSingleJson: true,
         noWarnings: true,
         preferFreeFormats: true,
-        youtubeSkipDashManifest: true,
       });
 
-      const formats = info.formats || [];
+      // Direct playable URL
+      let videoUrl = info.url;
 
-      const mp4 = formats.find(
-        (f: any) =>
-          f.ext === "mp4" &&
-          f.acodec !== "none" &&
-          f.vcodec !== "none"
-      );
+      // fallback from formats
+      if (!videoUrl && info.formats?.length) {
+        const bestFormat = info.formats
+          .filter(
+            (f: any) =>
+              f.url &&
+              f.vcodec !== "none"
+          )
+          .sort((a: any, b: any) => (b.height || 0) - (a.height || 0))[0];
 
-      if (!mp4) {
+        videoUrl = bestFormat?.url;
+      }
+
+      if (!videoUrl) {
         return res.json({
           success: false,
-          error: "No playable video found",
+          error: "No video found",
         });
       }
 
       res.json({
         success: true,
-        video: mp4.url,
+        video: videoUrl,
       });
-    } catch (err) {
-      console.log(err);
+
+    } catch (error: any) {
+      console.log("DOWNLOAD ERROR:", error);
 
       res.json({
         success: false,
-        error: "Failed To Fetch Video",
+        error: error.message || "Failed To Fetch Video",
       });
     }
   });
@@ -74,7 +85,7 @@ async function startServer() {
           "Content-Disposition",
           "attachment; filename=instadown-reel.mp4"
         );
-        res.setHeader("Content-Type", "application/octet-stream");
+        res.setHeader("Content-Type", "video/mp4");
         videoRes.pipe(res);
       })
       .on("error", () => {
